@@ -1,86 +1,46 @@
-.category-button {
-  padding: 5px 10px;
-  margin-right: 5px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  color: white;
-  font-weight: bold;
-  transition: transform 0.2s;
-}
-
-.category-button:hover {
-  transform: scale(1.1);
-}
-
-/* Kolory dla kategorii */
-.category-Praca { background-color: #1e90ff; }   /* niebieski */
-.category-Dom { background-color: #32cd32; }     /* zielony */
-.category-Zakupy { background-color: #ff8c00; }  /* pomarańczowy */
-.category-Inne { background-color: #888888; }    /* szary */
-.category-Wszystkie { background-color: #555555; } /* ciemny szary */
-
-/* Ogólny styl przycisków w App */
+/* 1. Reset podstawowy - upewniamy się, że tło nie jest białe/szare domyślnie */
 button {
-  padding: 5px 10px;
+  padding: 8px 15px;
   margin-right: 5px;
   border: none;
   border-radius: 5px;
   cursor: pointer;
-  color: white;
+  color: white !important; /* Wymuszamy biały tekst */
   font-weight: bold;
-  transition: transform 0.2s;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
 }
+
+/* 2. Przycisk DODAJ (Zielony) */
+button.add-task {
+  background-color: #4caf50 !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* 3. Przycisk COFNIJ (Niebiesko-szary) */
+button.undo-button {
+  background-color: #607d8b !important;
+  border: 1px solid #455a64;
+}
+
+/* 4. Filtry stanu */
+.priority-all { background-color: #555555 !important; }
+.priority-todo { background-color: #1e90ff !important; }
+.priority-done { background-color: #32cd32 !important; }
+
+/* 5. Przycisk Wyczyść */
+.clear-all { background-color: #f44336 !important; }
+
+/* 6. Kategorie */
+.category-button { background-color: #888 !important; }
+.category-Praca { background-color: #1e90ff !important; }
+.category-Dom { background-color: #32cd32 !important; }
+.category-Zakupy { background-color: #ff8c00 !important; }
+.category-Inne { background-color: #888888 !important; }
+.category-Wszystkie { background-color: #555555 !important; }
 
 button:hover {
-  transform: scale(1.1);
-}
-
-/* Filtry priorytetu */
-button.priority-all { background-color: #555555; }    /* ciemny szary */
-button.priority-todo { background-color: #1e90ff; }   /* niebieski */
-button.priority-done { background-color: #32cd32; }   /* zielony */
-
-/* Wyczyść wszystkie */
-button.clear-all { background-color: #f44336; }       /* czerwony */
-
-/* Dodaj nowe zadanie */
-button.add-task { background-color: #4caf50; }        /* zielony */
-
-/*definicja animacji mignięcia */
-@keyframes highlightNewTask {
-  0% {
-    background-color: #fff9c4; /* Jasnożółty start */
-    transform: scale(1.02);    /* Lekkie powiększenie */
-  }
-  100% {
-    background-color: transparent;
-    transform: scale(1);
-  }
-}
-
-/*nałożenie animacji na ostatni element listy */
-.task-item-wrapper:last-child {
-  animation: highlightNewTask 2s ease-out;
-}
-.filter-alert {
-  position: fixed;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: #2196f3;
-  color: white;
-  padding: 10px 20px;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-  z-index: 1000;
-  font-weight: bold;
-  animation: fadeInOut 2s ease-in-out;
-}
-
-@keyframes fadeInOut {
-  0% { opacity: 0; transform: translate(-50%, -20px); }
-  15% { opacity: 1; transform: translate(-50%, 0); }
-  85% { opacity: 1; transform: translate(-50%, 0); }
-  100% { opacity: 0; transform: translate(-50%, -20px); }
+  transform: scale(1.05);
+  filter: brightness(1.1);
 }

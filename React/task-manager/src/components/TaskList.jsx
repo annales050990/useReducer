@@ -1,12 +1,10 @@
 import React, { useEffect, useRef } from "react";
 import TaskItem from "./TaskItem";
 
-function TaskList({ tasks, onToggle, onDelete, onUpdate }) {
-    // Zmieniamy nazwę tutaj, żeby pasowała do reszty kodu
+function TaskList({ tasks, onToggle, onDelete, onUpdate, onReorder }) {
     const lastTaskRef = useRef(null); 
 
     useEffect(() => {
-        // Teraz lastTaskRef jest już zdefiniowany
         if (lastTaskRef.current) {
             lastTaskRef.current.scrollIntoView({
                 behavior: 'smooth', 
@@ -28,7 +26,6 @@ function TaskList({ tasks, onToggle, onDelete, onUpdate }) {
                     return (
                         <li 
                             key={task.id} 
-                            // Używamy poprawnej nazwy: lastTaskRef
                             ref={isLast ? lastTaskRef : null} 
                             className="task-item-wrapper"
                         >
@@ -38,9 +35,13 @@ function TaskList({ tasks, onToggle, onDelete, onUpdate }) {
                                 completed={task.completed}
                                 priority={task.priority}
                                 category={task.category}
+                                // 2. PRZEKAŻ index (potrzebny reducerowi, żeby wiedzieć który to element)
+                                index={index} 
                                 onToggle={onToggle}
                                 onDelete={onDelete}
                                 onUpdate={onUpdate}
+                                // 3. PRZEKAŻ onReorder DO TaskItem
+                                onReorder={onReorder}
                             />
                         </li>
                     );

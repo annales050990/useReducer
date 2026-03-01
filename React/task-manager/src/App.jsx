@@ -1,21 +1,33 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useReducer } from "react";
 import Header from "./components/Header";
 import TaskList from "./components/TaskList";
 import Card from "./components/Card";
 import TaskForm from "./components/TaskForm";
 import QuoteOfTheDay from "./components/QuoteOfTheDay";
 import "./App.css";
-import useLocalStorage from "./hooks/useLocalStorage";"./hooks/useLocalStorage";
 import useDebounce from "./hooks/useDebounce";
 import usePrevious from "./hooks/usePrevious";
+import { taskReducer, initialState } from "./reducers/taskReducer";
 
+// Słownik do ładnego wyświetlania nazw filtrów w komunikatach
 const filterNames = {
   all: "Wszystkie",
   todo: "Do zrobienia",
   done: "Wykonane"
 };
 
+// Funkcja inicjalizująca - pobiera zadania z localStorage przy starcie [cite: 126, 127]
+const init = (initial) => {
+  const saved = localStorage.getItem('tasks');
+  return {
+    ...initial,
+    tasks: saved ? JSON.parse(saved) : initial.tasks, // [cite: 129, 132]
+  };
+};
+
 function App() {
+  // --- CZĘŚĆ B: useReducer zamiast useState ---
+  const [state, dispatch] = useReducer(taskReducer, initialState, init); // [cite: 125]
 
   useEffect(() => {
     document.title = "Menedżer Zadań";
@@ -28,30 +40,25 @@ function App() {
   });
 
   const categories = ["Praca", "Dom", "Zakupy", "Inne"];
-  
-    const [tasks, setTasks] = useLocalStorage('tasks', [
-        { id: 1, title: "Kup mleko", completed: false, priority: "high", category: "Zakupy" },
-        { id: 2, title: "Posprzątać pokój", completed: true, priority: "medium", category: "Dom" },
-        { id: 3, title: "Zadzwonić do taty", completed: false, priority: "low", category: "Inne" },
-      ]);
 
-  // Zamiast useState używamy useLocalStorage
-  const [filter, setFilter] = useLocalStorage('activeFilter', 'all');
-  
+  // Automatyczny zapis do localStorage przy każdej zmianie listy zadań [cite: 135]
+  useEffect(() => {
+    localStorage.setItem('tasks', JSON.stringify(state.tasks));
+  }, [state.tasks]);
+
   const [categoryFilter, setCategoryFilter] = useState("Wszystkie");
-
   const [searchTerm, setSearchTerm] = useState("");
-  const debouncedSearchTerm = useDebounce(searchTerm, 300); // Czekamy 300ms
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
-  const prevFilter = usePrevious(filter); // Pobieramy poprzedni stan filtra
+  // Obsługa komunikatów o zmianie filtra [cite: 109]
+  const prevFilter = usePrevious(state.filter);
   const [filterMessage, setFilterMessage] = useState("");
-  const messageTimerRef = useRef(null); // Ref do przechowywania ID timera
+  const messageTimerRef = useRef(null);
 
   useEffect(() => {
-    if (prevFilter !== undefined && prevFilter !== filter) {
-      // Pobieramy ładne nazwy ze słownika
+    if (prevFilter !== undefined && prevFilter !== state.filter) {
       const prevLabel = filterNames[prevFilter] || prevFilter;
-      const currentLabel = filterNames[filter] || filter;
+      const currentLabel = filterNames[state.filter] || state.filter;
 
       setFilterMessage(`Zmieniono filtr z "${prevLabel}" na "${currentLabel}"`);
 
@@ -63,54 +70,56 @@ function App() {
         setFilterMessage("");
       }, 2000);
     }
-  }, [filter, prevFilter]);
+  }, [state.filter, prevFilter]);
 
+  // --- FUNKCJE WYSYŁAJĄCE AKCJE (DISPATCH) ---
   const toggleTask = (id) => {
-    setTasks(
-      tasks.map((task) =>
-        task.id === id ? {...task, completed: !task.completed } : task
-      )
-    );
+    dispatch({ type: "TOGGLE_TASK", payload: id }); // [cite: 105]
   };
 
   const deleteTask = (id) => {
-    setTasks(tasks.filter((task) => task.id !== id));
+    dispatch({ type: "DELETE_TASK", payload: id }); // [cite: 104]
   };
 
   const addTask = (newTask) => {
-    setTasks([...tasks, newTask]);
+    dispatch({ type: "ADD_TASK", payload: newTask }); // [cite: 103]
   };
 
   const updateTask = (id, newTitle, newCategory) => {
-    setTasks(tasks.map(task => 
-      task.id === id ? { ...task, title: newTitle, category: newCategory } : task
-    ));
+    dispatch({ 
+      type: "UPDATE_TASK", 
+      payload: { id, title: newTitle, category: newCategory } 
+    }); // [cite: 106]
+  };
+
+  const setFilter = (filterType) => {
+    dispatch({ type: "SET_FILTER", payload: filterType }); // [cite: 109]
   };
 
   const clearAllTasks = () => {
-    if (window.confirm("Napewno chcesz usunąć wszystkie zadania?")) {
-      setTasks([]);
+    if (window.confirm("Na pewno chcesz usunąć wszystkie zadania?")) {
+      // Możesz użyć akcji CLEAR_COMPLETED lub dodać nową do czyszczenia wszystkiego
+      state.tasks.forEach(t => dispatch({ type: "DELETE_TASK", payload: t.id }));
     }
   };
 
-  const filteredTasks = tasks
-  .filter(task => {
-    if (filter === "done") return task.completed;
-    if (filter === "todo") return !task.completed;
-    return true;
-  })
-  .filter(task => {
-    if (categoryFilter === "Wszystkie") return true;
-    return task.category === categoryFilter;
-  })
-  .filter(task => {
-    return task.title.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
-  });
-
+  // --- LOGIKA FILTROWANIA ---
+  const filteredTasks = state.tasks
+    .filter(task => {
+      if (state.filter === "done") return task.completed;
+      if (state.filter === "todo") return !task.completed;
+      return true;
+    })
+    .filter(task => {
+      if (categoryFilter === "Wszystkie") return true;
+      return task.category === categoryFilter;
+    })
+    .filter(task => {
+      return task.title.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
+    });
 
   return (
     <div className="app">
-      {/*WYŚWIETLANIE KOMUNIKATU (Jeśli istnieje) */}
       {filterMessage && (
         <div className="filter-alert">
           {filterMessage}
@@ -129,41 +138,49 @@ function App() {
           onChange={(e) => setSearchTerm(e.target.value)}
           style={{ marginBottom: "15px", padding: "8px", width: "100%" }}
         />
-        <button 
-          className="clear-all"
-          onClick={clearAllTasks}>Wyczyść</button>
-        {/* Filtry priorytetu */}
-        <div style={{ marginBottom: "10px" }}>
-          <span>Filtruj po priorytecie: </span>
-          <button 
-            className="priority-all"
-            onClick={() => setFilter("all")}>Wszystkie</button>
-          <button 
-            className="priority-todo"
-            onClick={() => setFilter("todo")}>Do zrobienia</button>
-          <button 
-            className="priority-done"
-            onClick={() => setFilter("done")}>Wykonane</button>
+        <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+          <button className="clear-all" onClick={clearAllTasks}>Wyczyść</button>
+          
+          {/* Przycisk Cofnij (Undo) z Części C [cite: 145, 158] */}
+          {state.previousTasks && (
+            <button 
+              className="undo-button" 
+              onClick={() => dispatch({ type: "UNDO" })}
+            >
+              Cofnij ↩
+            </button>
+          )}
         </div>
-        {/* Filtry kategorii */}
+
+        {/* Filtry priorytetu/stanu [cite: 109] */}
+        <div style={{ marginBottom: "10px" }}>
+          <span>Filtruj po stanie: </span>
+          <button className="priority-all" onClick={() => setFilter("all")}>Wszystkie</button>
+          <button className="priority-todo" onClick={() => setFilter("todo")}>Do zrobienia</button>
+          <button className="priority-done" onClick={() => setFilter("done")}>Wykonane</button>
+        </div>
+
+        {/* Filtry kategorii [cite: 112] */}
         <div style={{ marginBottom: "10px" }}>
           <span>Filtruj po kategorii: </span>
           <button 
-          className="category-button category-Wszystkie"
-          onClick={() => setCategoryFilter("Wszystkie")}>Wszystkie</button>
+            className="category-button category-Wszystkie" // Dodana klasa koloru
+            onClick={() => setCategoryFilter("Wszystkie")}>Wszystkie</button>
           {categories.map((cat) => (
             <button 
-            key={cat} 
-            className={`category-button category-${cat}`} 
-            onClick={() => setCategoryFilter(cat)}>{cat}</button>
+              key={cat} 
+              className={`category-button category-${cat}`} 
+              onClick={() => setCategoryFilter(cat)}>{cat}</button>
           ))}
         </div>
+
         <TaskList 
           tasks={filteredTasks} 
           onToggle={toggleTask} 
           onDelete={deleteTask} 
           onUpdate={updateTask}
-          />
+          onReorder={(index, direction) => dispatch({ type: "REORDER_TASKS", payload: { index, direction } })}
+        />
       </Card>
     </div>
   );
