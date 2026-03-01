@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Header from "./components/Header";
 import TaskList from "./components/TaskList";
 import Card from "./components/Card";
@@ -7,8 +7,25 @@ import QuoteOfTheDay from "./components/QuoteOfTheDay";
 import "./App.css";
 import useLocalStorage from "./hooks/useLocalStorage";"./hooks/useLocalStorage";
 import useDebounce from "./hooks/useDebounce";
+import usePrevious from "./hooks/usePrevious";
+
+const filterNames = {
+  all: "Wszystkie",
+  todo: "Do zrobienia",
+  done: "Wykonane"
+};
 
 function App() {
+
+  useEffect(() => {
+    document.title = "Menedżer Zadań";
+  }, []);
+  
+  const renderCount = useRef(0);
+  useEffect(() => {
+    renderCount.current += 1;
+    console.log(`%c[Render App]: ${renderCount.current}`, "color: #4caf50; font-weight: bold");
+  });
 
   const categories = ["Praca", "Dom", "Zakupy", "Inne"];
   
@@ -25,6 +42,28 @@ function App() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearchTerm = useDebounce(searchTerm, 300); // Czekamy 300ms
+
+  const prevFilter = usePrevious(filter); // Pobieramy poprzedni stan filtra
+  const [filterMessage, setFilterMessage] = useState("");
+  const messageTimerRef = useRef(null); // Ref do przechowywania ID timera
+
+  useEffect(() => {
+    if (prevFilter !== undefined && prevFilter !== filter) {
+      // Pobieramy ładne nazwy ze słownika
+      const prevLabel = filterNames[prevFilter] || prevFilter;
+      const currentLabel = filterNames[filter] || filter;
+
+      setFilterMessage(`Zmieniono filtr z "${prevLabel}" na "${currentLabel}"`);
+
+      if (messageTimerRef.current) {
+        clearTimeout(messageTimerRef.current);
+      }
+
+      messageTimerRef.current = setTimeout(() => {
+        setFilterMessage("");
+      }, 2000);
+    }
+  }, [filter, prevFilter]);
 
   const toggleTask = (id) => {
     setTasks(
@@ -71,6 +110,12 @@ function App() {
 
   return (
     <div className="app">
+      {/*WYŚWIETLANIE KOMUNIKATU (Jeśli istnieje) */}
+      {filterMessage && (
+        <div className="filter-alert">
+          {filterMessage}
+        </div>
+      )}
       <Header />
       <QuoteOfTheDay />
       <Card title="Dodaj nowe zadanie">
@@ -87,6 +132,7 @@ function App() {
         <button 
           className="clear-all"
           onClick={clearAllTasks}>Wyczyść</button>
+        {/* Filtry priorytetu */}
         <div style={{ marginBottom: "10px" }}>
           <span>Filtruj po priorytecie: </span>
           <button 
@@ -99,6 +145,7 @@ function App() {
             className="priority-done"
             onClick={() => setFilter("done")}>Wykonane</button>
         </div>
+        {/* Filtry kategorii */}
         <div style={{ marginBottom: "10px" }}>
           <span>Filtruj po kategorii: </span>
           <button 
